@@ -2,7 +2,7 @@ name: Envoi Météo Discord
 
 on:
   schedule:
-    - cron: '0 * * * *' # S'exécute au début de chaque heure
+    - cron: '15 * * * *' # S'exécute à la minute 15 de chaque heure
   workflow_dispatch: # Permet de tester manuellement
 
 jobs:
