@@ -1,5 +1,7 @@
 import os
 import re
+from datetime import datetime
+import zoneinfo
 import requests
 from bs4 import BeautifulSoup
 
@@ -35,7 +37,7 @@ def obtenir_meteo():
                     )
                 ):
                     temp = float(match_temp.group(1).replace(",", "."))
-                    # Utiliser un dictionnaire permet d'éviter automatiquement les doublons de ville
+                    # Filtrage des doublons de station
                     if nom_station not in villes_dict:
                         villes_dict[nom_station] = temp
 
@@ -43,7 +45,7 @@ def obtenir_meteo():
         print("Aucune donnée météo valide trouvée.")
         return
 
-    # Convertir en liste et trier par température
+    # Tri par température
     villes_temps = list(villes_dict.items())
     villes_temps.sort(key=lambda x: x[1])
 
@@ -55,9 +57,15 @@ def obtenir_meteo():
     txt_max = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_max])
     txt_min = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_min])
 
+    # Heure actuelle au format HHhMM (Heure de Paris)
+    heure_actuelle = datetime.now(zoneinfo.ZoneInfo("Europe/Paris")).strftime("%HH%M")
+
+    # Mise en forme du message Discord
     message = (
-        f"🔥 **Max :**\n{txt_max}\n\n"
-        f"❄️ **Min :**\n{txt_min}"
+        f":fire: **Température maximale à {heure_actuelle} :**\n"
+        f"{txt_max}\n\n"
+        f":snowflake: **Température minimale à {heure_actuelle} :**\n"
+        f"{txt_min}"
     )
 
     requests.post(WEBHOOK_URL, json={"content": message})
