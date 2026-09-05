@@ -8,14 +8,13 @@ WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
 
 def obtenir_meteo():
     headers = {"User-Agent": "Mozilla/5.0"}
-    # Ton nouveau lien avec classement des températures
     url = "https://www.meteociel.fr/obs/classement.php?all=1&u2=1&ma=1500"
 
     response = requests.get(url, headers=headers)
     response.encoding = "iso-8859-1"
     soup = BeautifulSoup(response.text, "html.parser")
 
-    villes_temps = []
+    villes_dict = {}
 
     # Extraction des couples (Station, Température)
     for table in soup.find_all("table"):
@@ -25,10 +24,8 @@ def obtenir_meteo():
                 nom_station = cols[0].get_text(strip=True)
                 val_brute = cols[1].get_text(strip=True)
 
-                # Expression régulière pour la température
                 match_temp = re.search(r"(-?\d{1,2}[\.,]\d+)\s*°C", val_brute)
 
-                # Nettoyage des menus et valeurs parasites
                 if (
                     match_temp
                     and 3 <= len(nom_station) <= 45
@@ -38,21 +35,23 @@ def obtenir_meteo():
                     )
                 ):
                     temp = float(match_temp.group(1).replace(",", "."))
-                    villes_temps.append((nom_station, temp))
+                    # Utiliser un dictionnaire permet d'éviter automatiquement les doublons de ville
+                    if nom_station not in villes_dict:
+                        villes_dict[nom_station] = temp
 
-    if not villes_temps:
+    if not villes_dict:
         print("Aucune donnée météo valide trouvée.")
         return
 
-    # Tri de la plus froide à la plus chaude
+    # Convertir en liste et trier par température
+    villes_temps = list(villes_dict.items())
     villes_temps.sort(key=lambda x: x[1])
 
-    # Top 5 des plus froides
+    # Top 5 des plus froides (distinctes)
     top5_min = villes_temps[:5]
-    # Top 5 des plus chaudes (inversé pour avoir la plus chaude en premier)
+    # Top 5 des plus chaudes (distinctes, plus chaude en premier)
     top5_max = sorted(villes_temps[-5:], key=lambda x: x[1], reverse=True)
 
-    # Mise en forme du message Discord selon ton format
     txt_max = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_max])
     txt_min = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_min])
 
