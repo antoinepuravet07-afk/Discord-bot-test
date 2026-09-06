@@ -21,7 +21,7 @@ def attendre_minute_cible(minute_cible=13):
 
 
 def obtenir_meteo():
-    # Sécurité pour s'assurer que Météociel a fini de mettre à jour ses données
+    # Attente pour s'assurer que Météociel a fini de mettre à jour ses données
     attendre_minute_cible(13)
 
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -58,16 +58,20 @@ def obtenir_meteo():
         print("Aucune donnée météo valide trouvée.")
         return
 
+    # Tri global des températures
     villes_temps = list(villes_dict.items())
     villes_temps.sort(key=lambda x: x[1])
 
-    top5_min = villes_temps[:5]
+    # Top 5 des plus froides : inversé pour aller du moins froid au plus froid
+    top5_min = sorted(villes_temps[:5], key=lambda x: x[1], reverse=True)
+    
+    # Top 5 des plus chaudes : du plus chaud au moins chaud
     top5_max = sorted(villes_temps[-5:], key=lambda x: x[1], reverse=True)
 
     txt_max = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_max])
     txt_min = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_min])
 
-    # Affichage de l'heure pile (ex: 11h)
+    # Formatage de l'heure pile (ex: 12h)
     heure_pile = datetime.now(zoneinfo.ZoneInfo("Europe/Paris")).strftime("%Hh")
 
     message = (
