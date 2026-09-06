@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from datetime import datetime
 import zoneinfo
 import requests
@@ -8,7 +9,21 @@ from bs4 import BeautifulSoup
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
 
 
+def attendre_minute_cible(minute_cible=13):
+    """Attend la minute cible si le script a démarré trop tôt."""
+    tz = zoneinfo.ZoneInfo("Europe/Paris")
+    maintenant = datetime.now(tz)
+
+    if maintenant.minute < minute_cible:
+        secondes_a_attendre = (minute_cible - maintenant.minute) * 60 - maintenant.second
+        print(f"Démarrage anticipé ({maintenant.strftime('%Hh%M')}). Pause de {secondes_a_attendre}s jusqu'à {minute_cible} min...")
+        time.sleep(secondes_a_attendre)
+
+
 def obtenir_meteo():
+    # Sécurité pour s'assurer que Météociel a fini de mettre à jour ses données
+    attendre_minute_cible(13)
+
     headers = {"User-Agent": "Mozilla/5.0"}
     url = "https://www.meteociel.fr/obs/classement.php?all=1&u2=1&ma=1500"
 
@@ -52,7 +67,7 @@ def obtenir_meteo():
     txt_max = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_max])
     txt_min = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_min])
 
-    # Extraction de l'heure pile uniquement (ex: 09h)
+    # Affichage de l'heure pile (ex: 11h)
     heure_pile = datetime.now(zoneinfo.ZoneInfo("Europe/Paris")).strftime("%Hh")
 
     message = (
