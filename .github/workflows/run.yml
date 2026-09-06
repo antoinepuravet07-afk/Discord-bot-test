@@ -2,7 +2,7 @@ name: Envoi Météo Discord
 
 on:
   schedule:
-    - cron: '13 * * * *' # Lancement programmé à la minute 13
+    - cron: '6 * * * *' # Lancement programmé à la minute 13
   workflow_dispatch:
 
 jobs:
