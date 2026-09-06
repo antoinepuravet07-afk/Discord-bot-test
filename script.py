@@ -18,7 +18,6 @@ def obtenir_meteo():
 
     villes_dict = {}
 
-    # Extraction des couples (Station, Température)
     for table in soup.find_all("table"):
         for ligne in table.find_all("tr"):
             cols = ligne.find_all("td")
@@ -37,7 +36,6 @@ def obtenir_meteo():
                     )
                 ):
                     temp = float(match_temp.group(1).replace(",", "."))
-                    # Filtrage des doublons de station
                     if nom_station not in villes_dict:
                         villes_dict[nom_station] = temp
 
@@ -45,26 +43,22 @@ def obtenir_meteo():
         print("Aucune donnée météo valide trouvée.")
         return
 
-    # Tri par température
     villes_temps = list(villes_dict.items())
     villes_temps.sort(key=lambda x: x[1])
 
-    # Top 5 des plus froides (distinctes)
     top5_min = villes_temps[:5]
-    # Top 5 des plus chaudes (distinctes, plus chaude en premier)
     top5_max = sorted(villes_temps[-5:], key=lambda x: x[1], reverse=True)
 
     txt_max = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_max])
     txt_min = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_min])
 
-    # Heure actuelle au format HHhMM (Heure de Paris)
-    heure_actuelle = datetime.now(zoneinfo.ZoneInfo("Europe/Paris")).strftime("%HH%M")
+    # Extraction de l'heure pile uniquement (ex: 09h)
+    heure_pile = datetime.now(zoneinfo.ZoneInfo("Europe/Paris")).strftime("%Hh")
 
-    # Mise en forme du message Discord
     message = (
-        f":fire: **Température maximale à {heure_actuelle} :**\n"
+        f"🔥 **Température maximale à {heure_pile} :**\n"
         f"{txt_max}\n\n"
-        f":snowflake: **Température minimale à {heure_actuelle} :**\n"
+        f"❄️ **Température minimale à {heure_pile} :**\n"
         f"{txt_min}"
     )
 
