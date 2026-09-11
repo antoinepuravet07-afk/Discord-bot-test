@@ -25,7 +25,8 @@ def obtenir_meteo():
     attendre_minute_cible(13)
 
     headers = {"User-Agent": "Mozilla/5.0"}
-    url = "https://www.meteociel.fr/obs/classement.php?all=1&u2=1&ma=1500"
+    # URL filtrée sur les stations jusqu'à 800m d'altitude
+    url = "https://www.meteociel.fr/obs/classement.php?all=1&u2=1&ma=800"
 
     response = requests.get(url, headers=headers)
     response.encoding = "iso-8859-1"
