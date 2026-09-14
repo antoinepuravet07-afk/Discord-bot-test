@@ -2,7 +2,9 @@ name: Envoi Météo Discord
 
 on:
   schedule:
-    - cron: '0 * * * *' # Demande à l'heure pile pour être sûr d'être prêt à :13
+    # Déclenchement à :08 UTC pour obtenir :13 heure française
+    # 00h, 06h, 08h, 10h, 12h, 13h, 15h, 16h, 17h, 18h, 19h, 20h, 22h
+    - cron: '8 4,6,8,10,11,13,14,15,16,17,18,20,22 * * *'
   workflow_dispatch:
 
 jobs:
