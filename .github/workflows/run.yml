@@ -2,7 +2,7 @@ name: Envoi Météo Discord
 
 on:
   schedule:
-    # Déclenchement à :08 UTC (8 min + 5 min de sleep = envoi à :13)
+    # Déclenchement à :00 UTC (8 min + 5 min de sleep = envoi à :13)
     # 00h, 06h, et toutes les heures de 08h à 22h (heure française)
     - cron: '8 22,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20 * * *'
   workflow_dispatch:
