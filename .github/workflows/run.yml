@@ -2,7 +2,8 @@ name: Envoi Météo Discord
 
 on:
   schedule:
-    - cron: '0 22,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20 * * *'
+    # 7h, 8h, 9h, 11h, 14h, 17h, 19h, 22h (en heure française, convertie en UTC à la minute 13)
+    - cron: '13 5,6,7,9,12,15,17,20 * * *'
   workflow_dispatch:
 
 jobs:
