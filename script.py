@@ -1,34 +1,34 @@
-import os
-import re
-import time
-from datetime import datetime
-import zoneinfo
-import requests
-from bs4 import BeautifulSoup
-
-WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
-
-
-def attendre_minute_cible(minute_cible=13):
-    """Attend la minute cible si le script a démarré trop tôt."""
-    tz = zoneinfo.ZoneInfo("Europe/Paris")
-    maintenant = datetime.now(tz)
-
-    if maintenant.minute < minute_cible:
-        secondes_a_attendre = (minute_cible - maintenant.minute) * 60 - maintenant.second
-        print(f"Démarrage anticipé ({maintenant.strftime('%Hh%M')}). Pause de {secondes_a_attendre}s jusqu'à {minute_cible} min...")
-        time.sleep(secondes_a_attendre)
-
-
 def obtenir_meteo():
+    print("-> Début de la fonction obtenir_meteo()")
+    
     # Attente pour s'assurer que Météociel a fini de mettre à jour ses données
     attendre_minute_cible(13)
 
-    headers = {"User-Agent": "Mozilla/5.0"}
-    # URL filtrée sur les stations jusqu'à 800m d'altitude
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     url = "https://www.meteociel.fr/obs/classement.php?all=1&u2=1&ma=800"
 
-    response = requests.get(url, headers=headers)
+    # --- SYSTÈME DE NOUVELLES TENTATIVES ---
+    max_retries = 3
+    response = None
+
+    for tentative in range(1, max_retries + 1):
+        print(f"-> Connexion à l'URL (tentative {tentative}/{max_retries})...")
+        try:
+            response = requests.get(url, headers=headers, timeout=15)
+            if response.status_code == 200:
+                print("-> Succès ! Page récupérée avec succès.")
+                break
+        except (requests.exceptions.Timeout, requests.exceptions.RequestException) as e:
+            print(f"⚠️ Échec de la tentative {tentative} : {e}")
+            if tentative < max_retries:
+                print("⏳ Pause de 10 secondes avant de réessayez...")
+                time.sleep(10)
+
+    if not response or response.status_code != 200:
+        print("❌ Impossible de récupérer les données Météociel après plusieurs tentatives.")
+        return
+
+    # --- SUITE DU TRAITEMENT DU HTML ---
     response.encoding = "iso-8859-1"
     soup = BeautifulSoup(response.text, "html.parser")
 
@@ -56,23 +56,23 @@ def obtenir_meteo():
                         villes_dict[nom_station] = temp
 
     if not villes_dict:
-        print("Aucune donnée météo valide trouvée.")
+        print("❌ Aucune donnée météo valide trouvée.")
         return
+
+    print(f"-> {len(villes_dict)} stations valides trouvées. Tri en cours...")
 
     # Tri global des températures
     villes_temps = list(villes_dict.items())
     villes_temps.sort(key=lambda x: x[1])
 
-    # Top 5 des plus froides : inversé pour aller du moins froid au plus froid
+    # Top 5 des plus froides
     top5_min = sorted(villes_temps[:5], key=lambda x: x[1], reverse=True)
-    
-    # Top 5 des plus chaudes : du plus chaud au moins chaud
+    # Top 5 des plus chaudes
     top5_max = sorted(villes_temps[-5:], key=lambda x: x[1], reverse=True)
 
     txt_max = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_max])
     txt_min = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_min])
 
-    # Formatage de l'heure pile (ex: 12h)
     heure_pile = datetime.now(zoneinfo.ZoneInfo("Europe/Paris")).strftime("%Hh")
 
     message = (
@@ -82,8 +82,6 @@ def obtenir_meteo():
         f"{txt_min}"
     )
 
-    requests.post(WEBHOOK_URL, json={"content": message})
-
-
-if __name__ == "__main__":
-    obtenir_meteo()
+    print("-> Envoi du message sur le webhook Discord...")
+    res_discord = requests.post(WEBHOOK_URL, json={"content": message}, timeout=10)
+    print(f"-> Statut de l'envoi Discord : {res_discord.status_code}")
