@@ -1,13 +1,29 @@
+import os
+import time
+from datetime import datetime
+import zoneinfo
+import requests
+from bs4 import BeautifulSoup
+import re
+
+WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
+
+def attendre_minute_cible(minute_cible):
+    maintenant = datetime.now(zoneinfo.ZoneInfo("Europe/Paris"))
+    if maintenant.minute < minute_cible:
+        attente = (minute_cible - maintenant.minute) * 60 - maintenant.second
+        if attente > 0:
+            print(f"⏳ Attente de {attente} secondes pour atteindre la minute {minute_cible}...")
+            time.sleep(attente)
+
 def obtenir_meteo():
     print("-> Début de la fonction obtenir_meteo()")
     
-    # Attente pour s'assurer que Météociel a fini de mettre à jour ses données
     attendre_minute_cible(13)
 
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     url = "https://www.meteociel.fr/obs/classement.php?all=1&u2=1&ma=800"
 
-    # --- SYSTÈME DE NOUVELLES TENTATIVES ---
     max_retries = 3
     response = None
 
@@ -21,14 +37,13 @@ def obtenir_meteo():
         except (requests.exceptions.Timeout, requests.exceptions.RequestException) as e:
             print(f"⚠️ Échec de la tentative {tentative} : {e}")
             if tentative < max_retries:
-                print("⏳ Pause de 10 secondes avant de réessayez...")
+                print("⏳ Pause de 10 secondes avant de réitérer...")
                 time.sleep(10)
 
     if not response or response.status_code != 200:
         print("❌ Impossible de récupérer les données Météociel après plusieurs tentatives.")
         return
 
-    # --- SUITE DU TRAITEMENT DU HTML ---
     response.encoding = "iso-8859-1"
     soup = BeautifulSoup(response.text, "html.parser")
 
@@ -61,13 +76,10 @@ def obtenir_meteo():
 
     print(f"-> {len(villes_dict)} stations valides trouvées. Tri en cours...")
 
-    # Tri global des températures
     villes_temps = list(villes_dict.items())
     villes_temps.sort(key=lambda x: x[1])
 
-    # Top 5 des plus froides
     top5_min = sorted(villes_temps[:5], key=lambda x: x[1], reverse=True)
-    # Top 5 des plus chaudes
     top5_max = sorted(villes_temps[-5:], key=lambda x: x[1], reverse=True)
 
     txt_max = "\n".join([f"{t:.1f} °C à {v}" for v, t in top5_max])
@@ -85,3 +97,6 @@ def obtenir_meteo():
     print("-> Envoi du message sur le webhook Discord...")
     res_discord = requests.post(WEBHOOK_URL, json={"content": message}, timeout=10)
     print(f"-> Statut de l'envoi Discord : {res_discord.status_code}")
+
+if __name__ == "__main__":
+    obtenir_meteo()
